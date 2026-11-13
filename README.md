@@ -9,7 +9,7 @@ This repository holds the format so that anyone can write, read and check a char
 | `charter-package-format-1.0.md` | The specification |
 | `charter-package-format-1.0.schema.json` | JSON Schema (draft 2020-12) |
 | `validate.py` | Reference validator: `python3 validate.py package.json [previous_version.json]` (needs `pip install jsonschema`) |
-| `tests/` | 28 conformance test packages and `manifest.json` with the expected result for each |
+| `tests/` | 34 conformance test packages and `manifest.json` with the expected result for each |
 
 A validator conforms if it gives the result `tests/manifest.json` expects for every test package.
 

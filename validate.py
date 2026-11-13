@@ -352,6 +352,20 @@ def check_rules(pkg, previous=None):
         if r not in roles:
             problems.append(f'R10: section "{k}" is owned by "{r}", which is not a party.')
 
+    # R11: maintenance (proposed, section 12.2)
+    mt = pkg.get('maintenance')
+    if isinstance(mt, dict):
+        mids = [m['id'] for m in mt['items']]
+        if len(set(mids)) != len(mids):
+            problems.append('R11: maintenance item ids must be unique.')
+        sig_ids = {s['id'] for s in pkg['signals']['items']}
+        for m in mt['items']:
+            if m['evidence'] not in events:
+                problems.append(f'R11: {m["id"]} evidence "{m["evidence"]}" is not in record_schema.event_records.')
+            for sid in m['applies_to'].get('signals', []):
+                if sid not in sig_ids:
+                    problems.append(f'R11: {m["id"]} applies to signal "{sid}", which is not in signals.items.')
+
     # R7: version sequence and kept provenance
     if previous:
         pm = previous['metadata']
