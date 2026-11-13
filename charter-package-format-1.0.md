@@ -1,6 +1,6 @@
 # Charter Package Format 1.0 (Public Review Draft)
 
-**Public review draft of version 1.0, [DATE]. Editor: Seed Machines. Comments are welcome; see section 21.**
+**Public review draft of version 1.0, November 2026. Editor: Seed Machines. Comments are welcome; see section 21.**
 
 Companion files: `charter-package-format-1.0.schema.json` (JSON Schema), `validate.py` (reference validator), `tests/` (28 conformance test packages with `manifest.json`).
 
@@ -281,7 +281,7 @@ A profile lists, for one domain, the signals a package is expected to define, ty
 
 This is a public review draft. It may change before the final version 1.0.
 
-Copyright 2026 [FULL LEGAL NAME]. All rights reserved, except that anyone may read, copy and share this draft unchanged, and use the schema, validator and test packages to evaluate it and test their own tools, for the purpose of reviewing it and commenting on it. No other licence, including any patent licence, is granted by this draft.
+Copyright 2026 John Reaves. All rights reserved, except that anyone may read, copy and share this draft unchanged, and use the schema, validator and test packages to evaluate it and test their own tools, for the purpose of reviewing it and commenting on it. No other licence, including any patent licence, is granted by this draft.
 
 Seed Machines intends to publish the final version 1.0 under an open licence. Comments: open an issue at https://github.com/SeedMachines/charter-package-format/issues.
 
