@@ -1,0 +1,979 @@
+{
+  "metadata": {
+    "package_id": "CHARTER-WAREHOUSE-SAMPLE-001",
+    "version": "1.3",
+    "status": "SAMPLE",
+    "created_at": "2026-10-31T12:00:00Z",
+    "domain": "warehouse_logistics",
+    "unit": "Autonomous mobile robot (AMR), tote transport, fleet of 24, unit AMR-07",
+    "operator": "Example Logistics (fictional, for demonstration)",
+    "insurer": "Example Mutual (fictional)",
+    "regulatory_references": [
+      "ANSI/RIA R15.08 (industrial mobile robots)",
+      "OSHA 29 CFR 1910.176 (handling materials, aisle clearance)",
+      "OSHA 29 CFR 1910.212 (machine guarding)"
+    ],
+    "seal_algorithm": {
+      "canonicalization": "RFC 8785 (JCS)",
+      "digest": "SHA-256",
+      "excludes": "metadata.package_hash, approvals"
+    },
+    "package_hash": null,
+    "change_summary": [
+      "Version 1.3 follows the v1.1 and v1.2 packages recorded for the demo videos and lists every change since 1.0. The 0.6 m/s shared-aisle limit in v1.2 illustrated a version change and is not carried forward; shared aisles stay at 0.8 m/s",
+      "Adds the pick station bay sensor (station_bay_clear) and check ENV-07",
+      "Adds a stop margin signal so the level 2 trigger says when to start braking, while ENV-05 says the unit must already be stopped",
+      "Adds a contact sensor and an explicit contact trigger for level 3, with inspection and restart as separate requirements",
+      "Adds structured checks for the 0.8 m/s intersection limit (ENV-08) and the 20% battery minimum at mission start (ENV-09)",
+      "States the link-loss timeout (ENV-10: stopped within 6 s of losing the fleet manager link) and the fire alarm tie-in (ENV-11 and ENV-12)",
+      "Rewords the routing rule: may_grant decides which classes are eligible, and rank only orders them",
+      "Level 3 trigger_check covers all three of its triggers (contact, level 2 past 30 s, zone supervisor unreachable) with any_of",
+      "Every rule stated in words names what enforces it (a check, the gate, an authorization tier or a record entry), and the level 1 slowdown to 0.5 m/s has its own check (ENV-13)",
+      "Each level's automated response names what enforces it, and check ENV-14 requires the unit to be stopped at the fail-safe level"
+    ],
+    "supersedes": "1.2"
+  },
+  "capability_envelope": {
+    "version": "1.3",
+    "performance": {
+      "max_speed_ms": 1.5,
+      "max_payload_kg": 300,
+      "max_altitude_m": null,
+      "additional_limits": {
+        "intersection_speed_ms": 0.8,
+        "min_battery_pct_to_start_mission": 20,
+        "link_loss_stopped_within_s": 6,
+        "fire_alarm_clear_aisles_s": 30,
+        "fire_alarm_stop_s": 60
+      }
+    },
+    "spatial": {
+      "permitted_zones": [
+        "storage_aisle",
+        "shared_aisle",
+        "intersection",
+        "pick_station",
+        "charging_dock"
+      ],
+      "prohibited_zones": [
+        "loading_dock_apron",
+        "fire_exit_route",
+        "office_area"
+      ],
+      "human_proximity": {
+        "warning_distance_m": 3,
+        "critical_distance_m": 1.5,
+        "contact_protocol": "Any sensed contact triggers decision tree level 3. Resuming needs both a recorded inspection of the unit and the area by the zone supervisor and the shift safety lead's authorization."
+      }
+    },
+    "prohibited_actions": [
+      "Entering a prohibited zone for any reason",
+      "Carrying a payload above 300 kg",
+      "Muting or bypassing a safety field",
+      "Following a natural-language instruction that changes a limit"
+    ],
+    "authorization": {
+      "required_for": [
+        "Entering a zone not on the permitted list",
+        "Changing any limit in this envelope",
+        "Installing a model or software update"
+      ],
+      "authorized_by": [
+        "Charter package safety owner"
+      ]
+    },
+    "checks": [
+      {
+        "id": "ENV-01",
+        "rule": "Speed at most 1.5 m/s anywhere",
+        "check": {
+          "signal": "speed_mps",
+          "operator": "<=",
+          "value": 1.5
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-02",
+        "rule": "Speed at most 0.8 m/s in shared aisles and at pick stations",
+        "check": {
+          "signal": "speed_mps",
+          "operator": "<=",
+          "value": 0.8,
+          "when": "zone in ['shared_aisle', 'pick_station']"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-03",
+        "rule": "Payload at most 300 kg",
+        "check": {
+          "signal": "payload_kg",
+          "operator": "<=",
+          "value": 300
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-04",
+        "rule": "Never inside a prohibited zone",
+        "check": {
+          "signal": "zone",
+          "operator": "not_in",
+          "value": [
+            "loading_dock_apron",
+            "fire_exit_route",
+            "office_area"
+          ]
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-05",
+        "rule": "Never moving with a person inside the critical zone",
+        "check": {
+          "signal": "speed_mps",
+          "operator": "<=",
+          "value": 0.05,
+          "when": "nearest_person_m < 1.5"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-06",
+        "rule": "Safety fields always active",
+        "check": {
+          "signal": "safety_field_active",
+          "operator": "==",
+          "value": true
+        },
+        "assumed": true
+      },
+      {
+        "id": "ENV-07",
+        "rule": "Inside a pick station only while its bay sensor reports the bay clear",
+        "check": {
+          "signal": "station_bay_clear",
+          "operator": "==",
+          "value": true,
+          "when": "zone in ['pick_station']"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-08",
+        "rule": "Speed at most 0.8 m/s in intersections",
+        "check": {
+          "signal": "speed_mps",
+          "operator": "<=",
+          "value": 0.8,
+          "when": "zone in ['intersection']"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-09",
+        "rule": "Start a mission only with the battery at 20% or more",
+        "check": {
+          "signal": "battery_pct",
+          "operator": ">=",
+          "value": 20,
+          "when": "mission_state == 'starting'"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-10",
+        "rule": "On losing the fleet manager link, stop in place: stopped once the link has been lost for 6 s",
+        "check": {
+          "signal": "speed_mps",
+          "operator": "<=",
+          "value": 0.05,
+          "when": "fleet_link_lost_s > 6"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-11",
+        "rule": "During a fire alarm, out of shared aisles, intersections and fire exit routes within 30 s",
+        "check": {
+          "signal": "zone",
+          "operator": "not_in",
+          "value": [
+            "shared_aisle",
+            "intersection",
+            "fire_exit_route"
+          ],
+          "when": "fire_alarm_active_s > 30"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-12",
+        "rule": "During a fire alarm, stopped within 60 s and held until the alarm is reset",
+        "check": {
+          "signal": "speed_mps",
+          "operator": "<=",
+          "value": 0.05,
+          "when": "fire_alarm_active_s > 60"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-13",
+        "rule": "At the warning level, speed at most 0.5 m/s once the unit has had 1 s to slow",
+        "check": {
+          "signal": "speed_mps",
+          "operator": "<=",
+          "value": 0.5,
+          "when": "intervention_level == 1 && intervention_level_s > 1"
+        },
+        "assumed": false
+      },
+      {
+        "id": "ENV-14",
+        "rule": "At the fail-safe level, stopped (0.05 m/s is the measurement tolerance; no drive command is allowed)",
+        "check": {
+          "signal": "speed_mps",
+          "operator": "<=",
+          "value": 0.05,
+          "when": "intervention_level == 3"
+        },
+        "assumed": false
+      }
+    ],
+    "enforcement": [
+      {
+        "rule": "Entering a prohibited zone for any reason",
+        "by": "check",
+        "ref": "ENV-04"
+      },
+      {
+        "rule": "Carrying a payload above 300 kg",
+        "by": "check",
+        "ref": "ENV-03"
+      },
+      {
+        "rule": "Muting or bypassing a safety field",
+        "by": "check",
+        "ref": "ENV-06"
+      },
+      {
+        "rule": "Following a natural-language instruction that changes a limit",
+        "by": "gate",
+        "ref": "prohibited_actions"
+      },
+      {
+        "rule": "Entering a zone not on the permitted list",
+        "by": "authorization",
+        "ref": "tier 3"
+      },
+      {
+        "rule": "Changing any limit in this envelope",
+        "by": "authorization",
+        "ref": "tier 3"
+      },
+      {
+        "rule": "Installing a model or software update",
+        "by": "authorization",
+        "ref": "tier 3"
+      },
+      {
+        "rule": "Any sensed contact triggers decision tree level 3. Resuming needs both a recorded inspection of the unit and the area by the zone supervisor and the shift safety lead's authorization.",
+        "by": "check",
+        "ref": "level_3"
+      },
+      {
+        "rule": "Any sensed contact triggers decision tree level 3. Resuming needs both a recorded inspection of the unit and the area by the zone supervisor and the shift safety lead's authorization.",
+        "by": "record",
+        "ref": "inspection_recorded"
+      }
+    ]
+  },
+  "decision_tree": {
+    "version": "1.3",
+    "based_on_templates": [
+      "DT-WH-01"
+    ],
+    "levels": [
+      {
+        "level": 1,
+        "name": "warning",
+        "trigger": "A person is detected inside the 3.0 m warning zone",
+        "trigger_check": {
+          "signal": "nearest_person_m",
+          "operator": "<",
+          "value": 3
+        },
+        "automated_response": "Slow to 0.5 m/s and sound and show the approach signal",
+        "escalation_timeout_seconds": 10,
+        "escalates_to": 2
+      },
+      {
+        "level": 2,
+        "name": "critical",
+        "trigger": "A person would come inside the 1.5 m critical zone before the unit could stop (stop margin below zero)",
+        "trigger_check": {
+          "signal": "stop_margin_m",
+          "operator": "<",
+          "value": 0
+        },
+        "automated_response": "Protective stop, braking early enough that the unit is stopped before any person is inside 1.5 m (ENV-05); hold until the zone has been clear for 3 seconds",
+        "escalation_timeout_seconds": 30,
+        "notify": [
+          "Zone supervisor (radio and fleet console)"
+        ],
+        "escalates_to": 3
+      },
+      {
+        "level": 3,
+        "name": "fail_safe",
+        "trigger": "Contact is sensed, level 2 persists past 30 seconds, or the zone supervisor cannot be reached",
+        "automated_response": "Remain stopped with brakes engaged; drive power off; await explicit resumption",
+        "fail_safe_location": "Stop in place; when cleared to move, return to the nearest charging dock",
+        "notify": [
+          "Zone supervisor",
+          "Shift safety lead"
+        ],
+        "resume_authorization": [
+          "Shift safety lead"
+        ],
+        "trigger_check": {
+          "any_of": [
+            {
+              "signal": "contact_sensed",
+              "operator": "==",
+              "value": true
+            },
+            "intervention_level == 2 && intervention_level_s > 30",
+            {
+              "signal": "supervisor_reachable",
+              "operator": "==",
+              "value": false
+            }
+          ]
+        },
+        "resume_conditions": [
+          "After any contact: the zone supervisor's inspection of the unit and the area is recorded first",
+          "Nobody inside the 1.5 m critical zone",
+          "Safety fields active"
+        ]
+      }
+    ],
+    "enforcement": [
+      {
+        "rule": "Slow to 0.5 m/s and sound and show the approach signal",
+        "by": "check",
+        "ref": "ENV-13"
+      },
+      {
+        "rule": "Slow to 0.5 m/s and sound and show the approach signal",
+        "by": "record",
+        "ref": "intervention_level_change"
+      },
+      {
+        "rule": "Protective stop, braking early enough that the unit is stopped before any person is inside 1.5 m (ENV-05); hold until the zone has been clear for 3 seconds",
+        "by": "check",
+        "ref": "ENV-05"
+      },
+      {
+        "rule": "Protective stop, braking early enough that the unit is stopped before any person is inside 1.5 m (ENV-05); hold until the zone has been clear for 3 seconds",
+        "by": "record",
+        "ref": "protective_stop"
+      },
+      {
+        "rule": "Remain stopped with brakes engaged; drive power off; await explicit resumption",
+        "by": "check",
+        "ref": "ENV-14"
+      },
+      {
+        "rule": "Remain stopped with brakes engaged; drive power off; await explicit resumption",
+        "by": "record",
+        "ref": "protective_stop"
+      },
+      {
+        "rule": "After any contact: the zone supervisor's inspection of the unit and the area is recorded first",
+        "by": "record",
+        "ref": "inspection_recorded"
+      },
+      {
+        "rule": "Nobody inside the 1.5 m critical zone",
+        "by": "check",
+        "ref": "ENV-05"
+      },
+      {
+        "rule": "Safety fields active",
+        "by": "check",
+        "ref": "ENV-06"
+      }
+    ]
+  },
+  "authorization_model": {
+    "version": "1.1",
+    "evaluated_sources": [
+      "operator_console",
+      "ai_planner",
+      "language_interface",
+      "vendor_update",
+      "fleet_manager"
+    ],
+    "reversibility_classes": [
+      {
+        "class": "reversible",
+        "definition": "Can be undone fully and promptly with no lasting effect",
+        "examples": [
+          "Rerouting within permitted zones",
+          "Reordering missions"
+        ],
+        "handling": "proceed_then_review",
+        "review_within_hours": 24
+      },
+      {
+        "class": "irreversible",
+        "definition": "Cannot be undone, or becomes effectively permanent once other work depends on it",
+        "examples": [
+          "Entering a new zone",
+          "Changing a safety field",
+          "Installing a model update"
+        ],
+        "handling": "hold_declare_await",
+        "on_no_decision": "refuse_and_hold_safe_state"
+      }
+    ],
+    "consequence_tiers": [
+      {
+        "tier": 1,
+        "description": "Within the approved envelope"
+      },
+      {
+        "tier": 2,
+        "description": "Changes a route, schedule or mission outside the plan but inside the envelope"
+      },
+      {
+        "tier": 3,
+        "description": "Changes a limit, zone or safety function in this charter package"
+      },
+      {
+        "tier": 4,
+        "description": "Needs an outside authority, such as the insurer or a regulator"
+      }
+    ],
+    "authority_classes": [
+      {
+        "id": "operator",
+        "rank": 1,
+        "holder": "Shift supervisor",
+        "may_grant": [
+          "tier 1 and 2 actions"
+        ]
+      },
+      {
+        "id": "package_safety_owner",
+        "rank": 2,
+        "holder": "Site safety manager",
+        "may_grant": [
+          "tier 3 changes"
+        ]
+      },
+      {
+        "id": "insurer",
+        "rank": 3,
+        "holder": "Example Mutual risk engineer",
+        "may_grant": [
+          "tier 4 items within the policy conditions"
+        ]
+      },
+      {
+        "id": "unassigned",
+        "rank": 4,
+        "holder": null,
+        "may_grant": []
+      }
+    ],
+    "evaluation_rules": {
+      "outcomes": [
+        "granted",
+        "refused",
+        "referred",
+        "unresolved"
+      ],
+      "routing": "The highest-ranked class decides",
+      "missing_input": "unresolved, never treated as permission",
+      "timeout": "No timeout converts a request into a grant",
+      "unassigned_class": "Requests above every assigned class rest as open; the unit continues existing permitted work",
+      "conflict": "Unresolved conflicts drive the unit to its fail-safe state"
+    }
+  },
+  "signals": {
+    "version": "1.1",
+    "items": [
+      {
+        "id": "speed_mps",
+        "description": "Ground speed",
+        "unit": "m/s",
+        "type": "number",
+        "rate_hz": 10,
+        "max_age_s": 0.3,
+        "source": "Wheel odometry fused with IMU",
+        "assumed": false
+      },
+      {
+        "id": "nearest_person_m",
+        "description": "Distance to the nearest detected person; 30 when nobody is detected within the 30 m lidar range",
+        "unit": "m",
+        "type": "number",
+        "rate_hz": 10,
+        "max_age_s": 0.3,
+        "source": "Safety lidar person detection",
+        "assumed": false
+      },
+      {
+        "id": "payload_kg",
+        "description": "Load on the deck",
+        "unit": "kg",
+        "type": "number",
+        "rate_hz": 1,
+        "max_age_s": 3,
+        "source": "Deck load cells",
+        "assumed": false
+      },
+      {
+        "id": "battery_pct",
+        "description": "Battery state of charge",
+        "unit": "%",
+        "type": "number",
+        "rate_hz": 0.2,
+        "max_age_s": 15,
+        "source": "Battery management system",
+        "assumed": false
+      },
+      {
+        "id": "safety_field_active",
+        "description": "Safety scanner fields armed",
+        "unit": null,
+        "type": "boolean",
+        "rate_hz": 10,
+        "max_age_s": 0.3,
+        "source": "Safety PLC",
+        "assumed": true
+      },
+      {
+        "id": "intervention_level",
+        "description": "Current decision tree level (0 when none)",
+        "unit": null,
+        "type": "number",
+        "rate_hz": 10,
+        "max_age_s": 0.3,
+        "source": "Unit controller",
+        "assumed": false
+      },
+      {
+        "id": "zone",
+        "description": "Mapped zone the unit is in",
+        "unit": null,
+        "type": "string",
+        "rate_hz": 1,
+        "max_age_s": 3,
+        "source": "Localization against the site map",
+        "assumed": false
+      },
+      {
+        "id": "x_m",
+        "description": "Position east on the site map",
+        "unit": "m",
+        "type": "number",
+        "rate_hz": 1,
+        "max_age_s": 3,
+        "source": "Localization",
+        "assumed": false
+      },
+      {
+        "id": "y_m",
+        "description": "Position north on the site map",
+        "unit": "m",
+        "type": "number",
+        "rate_hz": 1,
+        "max_age_s": 3,
+        "source": "Localization",
+        "assumed": false
+      },
+      {
+        "id": "stop_margin_m",
+        "description": "nearest_person_m minus 1.5 m minus the current stopping distance (speed squared over 2 x 2.0 m/s2, plus 0.45 m for a person closing in)",
+        "unit": "m",
+        "type": "number",
+        "rate_hz": 10,
+        "max_age_s": 0.3,
+        "source": "Unit controller, from safety lidar and odometry",
+        "assumed": false
+      },
+      {
+        "id": "contact_sensed",
+        "description": "Bumper contact strip pressed",
+        "unit": null,
+        "type": "boolean",
+        "rate_hz": 50,
+        "max_age_s": 0.1,
+        "source": "Bumper contact strip via the safety PLC",
+        "assumed": false
+      },
+      {
+        "id": "station_bay_clear",
+        "description": "Pick station bay light curtain reports no person in the robot's docking bay",
+        "unit": null,
+        "type": "boolean",
+        "rate_hz": 5,
+        "max_age_s": 1,
+        "source": "Pick station bay light curtain, over the site network",
+        "assumed": false
+      },
+      {
+        "id": "mission_state",
+        "description": "Mission phase: 'idle', 'starting' (from accepting a mission until the unit first moves), 'underway' or 'returning'",
+        "unit": null,
+        "type": "string",
+        "rate_hz": 1,
+        "max_age_s": 3,
+        "source": "Unit controller, from missions accepted from the fleet manager",
+        "assumed": false
+      },
+      {
+        "id": "fleet_link_lost_s",
+        "description": "Seconds since the last fleet manager heartbeat was missed (heartbeats every 1 s); 0 while the link is up",
+        "unit": "s",
+        "type": "number",
+        "rate_hz": 10,
+        "max_age_s": 0.3,
+        "source": "Unit controller, from fleet manager heartbeats",
+        "assumed": false
+      },
+      {
+        "id": "fire_alarm_active_s",
+        "description": "Seconds since the building fire alarm went active; 0 when it is not",
+        "unit": "s",
+        "type": "number",
+        "rate_hz": 1,
+        "max_age_s": 3,
+        "source": "Fire alarm panel relay, broadcast to units over the site radio; a unit that loses the link already stops under ENV-10",
+        "assumed": true
+      },
+      {
+        "id": "intervention_level_s",
+        "description": "Seconds the unit has been at its current decision tree level; 0 when at none",
+        "unit": "s",
+        "type": "number",
+        "rate_hz": 10,
+        "max_age_s": 0.3,
+        "source": "Unit controller",
+        "assumed": false
+      },
+      {
+        "id": "supervisor_reachable",
+        "description": "Whether the zone supervisor's radio and fleet console have acknowledged the unit's alert within 10 s; true when no alert is pending",
+        "unit": null,
+        "type": "boolean",
+        "rate_hz": 1,
+        "max_age_s": 3,
+        "source": "Fleet manager, from console and radio acknowledgements",
+        "assumed": true
+      }
+    ]
+  },
+  "record_schema": {
+    "version": "1.1",
+    "format": "JSON-L",
+    "storage": {
+      "location": "Site historian with a daily copy to the operator's cloud archive",
+      "retention_days": 1095,
+      "access_controls": "Write once; read access for the safety manager, the insurer and examiners on request"
+    },
+    "required_fields_per_entry": [
+      "timestamp",
+      "unit_id",
+      "package_id",
+      "package_version",
+      "package_hash",
+      "event_type",
+      "sensor_readings",
+      "location",
+      "operator_id",
+      "prev_entry_hash",
+      "entry_hash"
+    ],
+    "integrity": {
+      "package_hash": "Every entry carries the SHA-256 seal of the charter package in force",
+      "chain": "SHA-256 hash chain: prev_entry_hash links each entry to the one before; entry_hash covers the entry without its entry_hash field",
+      "independent_copy": "Chain head sent to the site historian every 5 minutes"
+    },
+    "continuous_telemetry": {
+      "frequency_hz": 1,
+      "fields": [
+        "speed_mps",
+        "nearest_person_m",
+        "payload_kg",
+        "battery_pct",
+        "safety_field_active",
+        "intervention_level",
+        "zone",
+        "x_m",
+        "y_m",
+        "stop_margin_m",
+        "contact_sensed",
+        "station_bay_clear",
+        "mission_state",
+        "fleet_link_lost_s",
+        "fire_alarm_active_s",
+        "intervention_level_s",
+        "supervisor_reachable"
+      ]
+    },
+    "event_records": [
+      "zone_entry",
+      "zone_exit",
+      "proximity_alert",
+      "intervention_level_change",
+      "protective_stop",
+      "operator_command",
+      "authorization_request",
+      "authorization_decision",
+      "configuration_change",
+      "heartbeat",
+      "link_lost",
+      "link_restored",
+      "contact",
+      "fire_alarm_on",
+      "fire_alarm_reset",
+      "mission_start",
+      "inspection_recorded"
+    ],
+    "configuration_change_records": {
+      "required_fields": [
+        "timestamp",
+        "change_type",
+        "authorized_by",
+        "previous_value",
+        "new_value",
+        "package_version_after"
+      ]
+    },
+    "authorization_records": {
+      "required_fields": [
+        "timestamp",
+        "source",
+        "proposed_action",
+        "reversibility_class",
+        "consequence_tier",
+        "outcome",
+        "reason",
+        "authority_routed_to",
+        "approver",
+        "envelope_version",
+        "rules_applied"
+      ]
+    },
+    "forensic_decidability": {
+      "questions_answerable": [
+        "What was the unit authorized to do at the moment of the incident?",
+        "What was the unit actually doing at the moment of the incident?",
+        "Who authorized the last configuration change, and when?",
+        "Was the unit operating within its approved capability envelope?",
+        "Were proximity rules in effect and functioning?",
+        "What was the intervention response sequence?",
+        "Was each action the AI initiated within its authorization, and who approved any change?"
+      ]
+    }
+  },
+  "risk_scenarios": {
+    "library": "Seed Machines warehouse AMR scenarios (draft)",
+    "addressed": [
+      {
+        "id": "WH-AMR-001",
+        "title": "Person stepping out at a blind intersection",
+        "envelope_controls": [
+          "ENV-02 shared aisle speed",
+          "Warning and critical proximity zones"
+        ],
+        "intervention": "Levels 1 and 2",
+        "records": [
+          "speed_mps",
+          "nearest_person_m",
+          "zone",
+          "protective_stop"
+        ]
+      },
+      {
+        "id": "WH-AMR-006",
+        "title": "Overloaded robot that cannot stop in time",
+        "envelope_controls": [
+          "ENV-03 payload limit"
+        ],
+        "intervention": "Mission refused above 300 kg",
+        "records": [
+          "payload_kg"
+        ]
+      },
+      {
+        "id": "WH-AMR-013",
+        "title": "Unauthorized configuration or software change",
+        "envelope_controls": [
+          "Authorization required for any limit change or update"
+        ],
+        "intervention": "Irreversible class: hold, declare, await",
+        "records": [
+          "configuration_change",
+          "authorization_request",
+          "authorization_decision"
+        ]
+      },
+      {
+        "id": "WH-AMR-022",
+        "title": "AI planner proposing an action outside the envelope",
+        "envelope_controls": [
+          "ENV-04 prohibited zones",
+          "Authorization model routing"
+        ],
+        "intervention": "Request refused; unit continues permitted work",
+        "records": [
+          "authorization_request",
+          "authorization_decision"
+        ]
+      },
+      {
+        "id": "WH-AMR-012",
+        "title": "Fleet manager or network outage",
+        "envelope_controls": [
+          "ENV-10 link-loss stop"
+        ],
+        "intervention": "Finish the current move for at most 5 s, then stop in place; resume when the link is restored and the zone supervisor clears it",
+        "records": [
+          "fleet_link_lost_s",
+          "speed_mps",
+          "link_lost",
+          "link_restored"
+        ]
+      },
+      {
+        "id": "WH-AMR-019",
+        "title": "Robots obstruct evacuation during a fire alarm",
+        "envelope_controls": [
+          "ENV-04 prohibited zones",
+          "ENV-11 clear shared aisles",
+          "ENV-12 stop"
+        ],
+        "intervention": "Leave shared aisles, intersections and exit routes within 30 s, stop within 60 s, hold until the alarm is reset",
+        "records": [
+          "fire_alarm_active_s",
+          "zone",
+          "speed_mps",
+          "fire_alarm_on",
+          "fire_alarm_reset"
+        ]
+      }
+    ],
+    "open": []
+  },
+  "operations_review": {
+    "version": "1.0",
+    "performance_targets": [
+      {
+        "id": "PT-01",
+        "metric": "Human proximity warnings (level 1) per 1,000 operating hours",
+        "target": "at most 4",
+        "window": "30 days",
+        "watched_by": "Site safety manager",
+        "if_missed": "Early review of shared-aisle speed limits and zone layout",
+        "assumed": false
+      },
+      {
+        "id": "PT-02",
+        "metric": "Level 3 fail-safe events",
+        "target": "at most 1",
+        "window": "30 days",
+        "watched_by": "Site safety manager",
+        "if_missed": "Early review of the decision tree and a report to Example Mutual",
+        "assumed": false
+      },
+      {
+        "id": "PT-03",
+        "metric": "Authorization requests left unresolved for more than one shift",
+        "target": "0",
+        "window": "30 days",
+        "watched_by": "Shift supervisor",
+        "if_missed": "Name a holder for the class the requests rest at",
+        "assumed": false
+      },
+      {
+        "id": "PT-04",
+        "metric": "Record entries with an intact hash chain and the package seal",
+        "target": "100 percent",
+        "window": "7 days",
+        "watched_by": "Example Mutual risk engineer",
+        "if_missed": "Investigate the recording gap before the next shift",
+        "assumed": false
+      }
+    ],
+    "review": {
+      "owner": "Site safety manager",
+      "cadence_days": 90,
+      "valid_from": "2026-10-09",
+      "valid_to": "2027-10-08",
+      "next_review": "2027-01-07",
+      "early_review_triggers": [
+        "Any level 3 event involving a person",
+        "A navigation model or software update",
+        "A change to the site layout or shared aisles",
+        "A change of insurer or policy conditions"
+      ]
+    },
+    "rollback": {
+      "conditions": [
+        "A performance target is missed twice in a row after a new version",
+        "An incident traced to a change in the new version",
+        "The insurer withdraws a condition the new version relies on"
+      ],
+      "fallback_version": null,
+      "decided_by": "package_safety_owner",
+      "backout_plan": "Units finish their current task, return to the charging dock and load the earlier sealed version; the shift supervisor confirms each unit reports the earlier package seal before it resumes.",
+      "notify": [
+        "Shift supervisor",
+        "Example Mutual risk engineer",
+        "Vendor support"
+      ]
+    }
+  },
+  "sign_off": {
+    "version": "1.0",
+    "parties": [
+      {
+        "role": "developer",
+        "name": null,
+        "organization": "Example Robotics (fictional)"
+      },
+      {
+        "role": "operator",
+        "name": "Site safety manager",
+        "organization": "Example Logistics (fictional, for demonstration)"
+      },
+      {
+        "role": "insurer",
+        "name": null,
+        "organization": "Example Mutual (fictional)"
+      },
+      {
+        "role": "risk_engineer",
+        "name": "Example Mutual risk engineer",
+        "organization": "Example Mutual (fictional)"
+      }
+    ],
+    "section_owners": {
+      "metadata": "developer",
+      "capability_envelope": "developer",
+      "decision_tree": "developer",
+      "signals": "developer",
+      "authorization_model": "operator",
+      "operations_review": "operator",
+      "record_schema": "insurer",
+      "risk_scenarios": "risk_engineer"
+    }
+  }
+}

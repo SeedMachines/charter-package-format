@@ -1,0 +1,1536 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Charter Package Format 1.0, public review draft",
+  "description": "Charter Package Format 1.0, public review draft. Structural rules; the conformance rules in section 16 are checked by a conforming validator, not by this schema.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "capability_envelope",
+    "decision_tree",
+    "authorization_model",
+    "signals",
+    "record_schema",
+    "risk_scenarios",
+    "operations_review",
+    "sign_off"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "package_id",
+        "version",
+        "status",
+        "created_at",
+        "domain",
+        "unit",
+        "operator",
+        "regulatory_references",
+        "package_hash"
+      ],
+      "properties": {
+        "package_id": {
+          "type": "string",
+          "pattern": "^(CHARTER|GOS)-[A-Z0-9]+(-[A-Z0-9]+)*$"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "DRAFT",
+            "DRAFT-ASSUMED",
+            "SAMPLE",
+            "APPROVED"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "insurer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "regulatory_references": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "seal_algorithm": {
+          "type": "object",
+          "required": [
+            "canonicalization",
+            "digest",
+            "excludes"
+          ],
+          "properties": {
+            "canonicalization": {
+              "const": "RFC 8785 (JCS)"
+            },
+            "digest": {
+              "const": "SHA-256"
+            },
+            "excludes": {
+              "enum": [
+                "metadata.package_hash",
+                "metadata.package_hash, approvals"
+              ]
+            }
+          }
+        },
+        "package_hash": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          ]
+        },
+        "supersedes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "change_summary": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "capability_envelope": {
+      "type": "object",
+      "required": [
+        "version",
+        "performance",
+        "spatial",
+        "prohibited_actions",
+        "authorization",
+        "checks"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "performance": {
+          "type": "object",
+          "required": [
+            "max_speed_ms"
+          ],
+          "properties": {
+            "max_speed_ms": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "max_payload_kg": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "max_altitude_m": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "additional_limits": {
+              "type": "object"
+            }
+          }
+        },
+        "spatial": {
+          "type": "object",
+          "required": [
+            "permitted_zones",
+            "prohibited_zones",
+            "human_proximity"
+          ],
+          "properties": {
+            "permitted_zones": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "prohibited_zones": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "human_proximity": {
+              "type": "object",
+              "required": [
+                "warning_distance_m",
+                "critical_distance_m"
+              ],
+              "properties": {
+                "warning_distance_m": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "critical_distance_m": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "contact_protocol": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "prohibited_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "authorization": {
+          "type": "object",
+          "required": [
+            "required_for",
+            "authorized_by"
+          ],
+          "properties": {
+            "required_for": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "authorized_by": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "rule",
+              "check",
+              "assumed"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^ENV-[0-9]{2,}$"
+              },
+              "rule": {
+                "type": "string",
+                "minLength": 1
+              },
+              "check": {
+                "$ref": "#/$defs/check"
+              },
+              "assumed": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "enforcement": {
+          "$ref": "#/$defs/enforcement"
+        }
+      }
+    },
+    "decision_tree": {
+      "type": "object",
+      "required": [
+        "version",
+        "levels"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "based_on_templates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "levels": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "level",
+              "name",
+              "trigger",
+              "automated_response"
+            ],
+            "properties": {
+              "level": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              },
+              "trigger": {
+                "type": "string"
+              },
+              "trigger_check": {
+                "$ref": "#/$defs/trigger_check"
+              },
+              "automated_response": {
+                "type": "string"
+              },
+              "escalation_timeout_seconds": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "escalates_to": {
+                "type": "integer"
+              },
+              "notify": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "fail_safe_location": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "resume_authorization": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "resume_conditions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "contains": {
+            "type": "object",
+            "required": [
+              "name",
+              "resume_authorization"
+            ],
+            "properties": {
+              "name": {
+                "const": "fail_safe"
+              },
+              "resume_authorization": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        "enforcement": {
+          "$ref": "#/$defs/enforcement"
+        }
+      }
+    },
+    "authorization_model": {
+      "type": "object",
+      "required": [
+        "version",
+        "evaluated_sources",
+        "reversibility_classes",
+        "consequence_tiers",
+        "authority_classes",
+        "evaluation_rules"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "evaluated_sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "reversibility_classes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "class",
+              "definition",
+              "handling"
+            ],
+            "properties": {
+              "class": {
+                "enum": [
+                  "reversible",
+                  "irreversible"
+                ]
+              },
+              "definition": {
+                "type": "string"
+              },
+              "examples": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "handling": {
+                "enum": [
+                  "proceed_then_review",
+                  "hold_declare_await"
+                ]
+              },
+              "review_within_hours": {
+                "type": "number"
+              },
+              "on_no_decision": {
+                "const": "refuse_and_hold_safe_state"
+              }
+            }
+          }
+        },
+        "consequence_tiers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "tier",
+              "description"
+            ],
+            "properties": {
+              "tier": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "authority_classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "rank",
+              "holder",
+              "may_grant"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "rank": {
+                "type": "integer"
+              },
+              "holder": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "may_grant": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "contains": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "const": "unassigned"
+              },
+              "holder": {
+                "type": "null"
+              },
+              "may_grant": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        "evaluation_rules": {
+          "type": "object",
+          "required": [
+            "outcomes",
+            "routing",
+            "missing_input",
+            "timeout",
+            "unassigned_class",
+            "conflict"
+          ],
+          "properties": {
+            "outcomes": {
+              "const": [
+                "granted",
+                "refused",
+                "referred",
+                "unresolved"
+              ]
+            },
+            "routing": {
+              "enum": [
+                "Among the classes whose may_grant covers the tier and that hold the capability requested, the lowest-ranked one. Rank orders eligible classes; it never grants by itself.",
+                "Lowest-ranked class whose rank meets the tier and that holds the capability requested"
+              ]
+            },
+            "missing_input": {
+              "const": "unresolved, never treated as permission"
+            },
+            "timeout": {
+              "const": "No timeout converts a request into a grant"
+            },
+            "unassigned_class": {
+              "const": "Requests above every assigned class rest as open; the unit continues existing permitted work"
+            },
+            "conflict": {
+              "const": "Unresolved conflicts drive the unit to its fail-safe state"
+            }
+          }
+        }
+      }
+    },
+    "signals": {
+      "type": "object",
+      "required": [
+        "version",
+        "items"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "description",
+              "unit",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/signal_id"
+              },
+              "description": {
+                "type": "string"
+              },
+              "unit": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "type": {
+                "enum": [
+                  "number",
+                  "string",
+                  "boolean"
+                ]
+              },
+              "rate_hz": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "max_age_s": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "source": {
+                "type": "string"
+              },
+              "assumed": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "record_schema": {
+      "type": "object",
+      "required": [
+        "version",
+        "format",
+        "storage",
+        "required_fields_per_entry",
+        "integrity",
+        "continuous_telemetry",
+        "event_records",
+        "configuration_change_records",
+        "authorization_records",
+        "forensic_decidability"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "format": {
+          "type": "string"
+        },
+        "storage": {
+          "type": "object",
+          "required": [
+            "location",
+            "retention_days"
+          ],
+          "properties": {
+            "retention_days": {
+              "type": "number"
+            }
+          }
+        },
+        "required_fields_per_entry": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "const": "package_hash"
+              }
+            },
+            {
+              "contains": {
+                "const": "prev_entry_hash"
+              }
+            },
+            {
+              "contains": {
+                "const": "entry_hash"
+              }
+            },
+            {
+              "contains": {
+                "const": "timestamp"
+              }
+            },
+            {
+              "contains": {
+                "const": "event_type"
+              }
+            }
+          ]
+        },
+        "integrity": {
+          "type": "object",
+          "required": [
+            "package_hash",
+            "chain"
+          ]
+        },
+        "continuous_telemetry": {
+          "type": "object",
+          "required": [
+            "frequency_hz",
+            "fields"
+          ],
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "event_records": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "configuration_change_records": {
+          "type": "object",
+          "required": [
+            "required_fields"
+          ]
+        },
+        "authorization_records": {
+          "type": "object",
+          "required": [
+            "required_fields"
+          ]
+        },
+        "forensic_decidability": {
+          "type": "object",
+          "required": [
+            "questions_answerable"
+          ],
+          "properties": {
+            "questions_answerable": {
+              "type": "array",
+              "minItems": 7,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "risk_scenarios": {
+      "type": "object",
+      "required": [
+        "library",
+        "addressed",
+        "open"
+      ],
+      "properties": {
+        "library": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "addressed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/scenario_id"
+              }
+            }
+          }
+        },
+        "open": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/scenario_id"
+              }
+            }
+          }
+        }
+      }
+    },
+    "underwriting_requirements": {
+      "type": "object",
+      "required": [
+        "version",
+        "items"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "requirement",
+              "raised_by",
+              "for_insured",
+              "decision",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "condition",
+                  "follow_up"
+                ]
+              },
+              "requirement": {
+                "type": "string"
+              },
+              "raised_by": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "organization": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "role": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "for_insured": {
+                "type": "string"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "set_id": {
+                    "type": "string"
+                  },
+                  "set_version": {
+                    "type": "string"
+                  }
+                }
+              },
+              "decision": {
+                "enum": [
+                  "accepted",
+                  "declined",
+                  "pending"
+                ]
+              },
+              "decided_by": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                }
+              },
+              "decided_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "met",
+                  "partly_met",
+                  "not_met"
+                ]
+              },
+              "met_by": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "if": {
+              "properties": {
+                "decision": {
+                  "enum": [
+                    "accepted",
+                    "declined"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "decided_by"
+              ],
+              "properties": {
+                "decided_by": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "role"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "operations_review": {
+      "type": "object",
+      "required": [
+        "version",
+        "performance_targets",
+        "review",
+        "rollback"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "performance_targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "metric",
+              "target",
+              "window",
+              "watched_by",
+              "if_missed"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "metric": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target": {
+                "type": "string",
+                "minLength": 1
+              },
+              "window": {
+                "type": "string",
+                "minLength": 1
+              },
+              "watched_by": {
+                "type": "string",
+                "minLength": 1
+              },
+              "if_missed": {
+                "type": "string",
+                "minLength": 1
+              },
+              "assumed": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "review": {
+          "type": "object",
+          "required": [
+            "owner",
+            "cadence_days"
+          ],
+          "properties": {
+            "owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cadence_days": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "valid_from": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "valid_to": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "next_review": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "early_review_triggers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "rollback": {
+          "type": "object",
+          "required": [
+            "conditions",
+            "backout_plan",
+            "decided_by"
+          ],
+          "properties": {
+            "conditions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "backout_plan": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decided_by": {
+              "type": "string"
+            },
+            "fallback_version": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/version"
+                }
+              ]
+            },
+            "notify": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sign_off": {
+      "type": "object",
+      "required": [
+        "version",
+        "parties",
+        "section_owners"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "parties": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "role"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "developer",
+                  "operator",
+                  "insurer",
+                  "risk_engineer"
+                ]
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "organization": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "allOf": [
+            {
+              "contains": {
+                "properties": {
+                  "role": {
+                    "const": "developer"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "role": {
+                    "const": "operator"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "section_owners": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "developer",
+              "operator",
+              "insurer",
+              "risk_engineer"
+            ]
+          },
+          "propertyNames": {
+            "not": {
+              "enum": [
+                "sign_off",
+                "approvals"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "regulatory_conditions": {
+      "type": "object",
+      "required": [
+        "version",
+        "items"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "requirement",
+              "raised_by",
+              "for_applicant",
+              "decision",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^RC-[0-9]{2,}$"
+              },
+              "kind": {
+                "enum": [
+                  "condition",
+                  "follow_up"
+                ]
+              },
+              "requirement": {
+                "type": "string"
+              },
+              "raised_by": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "organization": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "role": {
+                    "enum": [
+                      "certifier",
+                      "regulator"
+                    ]
+                  }
+                }
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "review_id": {
+                    "type": "string"
+                  },
+                  "review_version": {
+                    "type": "string"
+                  }
+                }
+              },
+              "decision": {
+                "enum": [
+                  "accepted",
+                  "declined",
+                  "pending"
+                ]
+              },
+              "decided_by": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                }
+              },
+              "decided_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "met",
+                  "partly_met",
+                  "not_met"
+                ]
+              },
+              "met_by": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "for_applicant": {
+                "type": "string"
+              }
+            },
+            "if": {
+              "properties": {
+                "decision": {
+                  "enum": [
+                    "accepted",
+                    "declined"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "decided_by"
+              ],
+              "properties": {
+                "decided_by": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "role"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "signal_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "scenario_id": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*-[0-9]{2,4}$"
+        }
+      ]
+    },
+    "value": {
+      "type": [
+        "number",
+        "string",
+        "boolean"
+      ]
+    },
+    "check": {
+      "type": "object",
+      "required": [
+        "signal",
+        "operator",
+        "value"
+      ],
+      "properties": {
+        "signal": {
+          "$ref": "#/$defs/signal_id"
+        },
+        "operator": {
+          "enum": [
+            "<",
+            "<=",
+            ">",
+            ">=",
+            "==",
+            "!=",
+            "in",
+            "not_in"
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/value"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/value"
+              }
+            }
+          ]
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "if": {
+        "properties": {
+          "operator": {
+            "enum": [
+              "in",
+              "not_in"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "array"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "value": {
+            "$ref": "#/$defs/value"
+          }
+        }
+      }
+    },
+    "trigger_check": {
+      "anyOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/check"
+            },
+            {
+              "properties": {
+                "for_seconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          ]
+        },
+        {
+          "$ref": "#/$defs/compound"
+        }
+      ]
+    },
+    "enforcement": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule",
+          "by",
+          "ref"
+        ],
+        "properties": {
+          "rule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "by": {
+            "enum": [
+              "check",
+              "gate",
+              "authorization",
+              "record"
+            ]
+          },
+          "ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "compound_item": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "$ref": "#/$defs/check"
+        },
+        {
+          "$ref": "#/$defs/compound"
+        }
+      ]
+    },
+    "compound": {
+      "type": "object",
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "signal"
+            ]
+          },
+          {
+            "required": [
+              "operator"
+            ]
+          }
+        ]
+      },
+      "oneOf": [
+        {
+          "required": [
+            "condition"
+          ],
+          "properties": {
+            "condition": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "any_of"
+          ],
+          "properties": {
+            "any_of": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/compound_item"
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "all_of"
+          ],
+          "properties": {
+            "all_of": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/compound_item"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "when": {
+          "type": "string",
+          "minLength": 1
+        },
+        "for_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "spec": "Charter Package Format 1.0, public review draft",
+  "base": "Warehouse AMR sample package v1.3",
+  "cases": [
+    {
+      "file": "valid-sample.json",
+      "description": "The warehouse AMR sample v1.3 as shipped in the app",
+      "expected": "valid"
+    },
+    {
+      "file": "valid-legacy-routing.json",
+      "description": "Routing rule in the wording used before 0.3",
+      "expected": "valid"
+    },
+    {
+      "file": "invalid-routing-reworded.json",
+      "description": "Routing rule reworded so rank alone grants",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-timeout-grants.json",
+      "description": "Timeout rule reworded so a timeout could grant",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-missing-input-permits.json",
+      "description": "Missing input treated as permission",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-no-unassigned-class.json",
+      "description": "No unassigned authority class",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-condition-syntax.json",
+      "description": "A when condition uses arithmetic",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-in-scalar.json",
+      "description": "Operator in with a single value",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-escalation-target.json",
+      "description": "A level escalates to a level that does not exist",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-escalation-downward.json",
+      "description": "Level 2 escalates back to level 1",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-no-fail-safe.json",
+      "description": "No fail_safe level",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-assumed-status.json",
+      "description": "An assumed value in a package marked DRAFT",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-hash-chain-field.json",
+      "description": "Record entries lack prev_entry_hash",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-compound-envelope-check.json",
+      "description": "An envelope check combines conditions (only triggers may)",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-any-of-single.json",
+      "description": "A trigger any_of lists one condition",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-compound-syntax.json",
+      "description": "A combined trigger condition does not parse",
+      "expected": "invalid"
+    },
+    {
+      "file": "valid-compound-condition.json",
+      "description": "Level 3 trigger written as one condition string",
+      "expected": "valid"
+    },
+    {
+      "file": "invalid-enforcement-missing-check.json",
+      "description": "An enforcement entry points at a check that does not exist",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-enforcement-gate-misuse.json",
+      "description": "The gate named as enforcing a rule that is not a prohibited action",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-enforcement-unknown-rule.json",
+      "description": "An enforcement entry names a rule the package does not state",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-rollback-unassigned.json",
+      "description": "Rollback decided by the unassigned class",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-fallback-not-earlier.json",
+      "description": "Fallback version is not earlier than the package version",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-no-operator-party.json",
+      "description": "Sign-off has no operator",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-section-unowned.json",
+      "description": "A section has no owner in sign_off",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-missing-operations-review.json",
+      "description": "No operations_review section",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-approved-unsealed.json",
+      "description": "APPROVED without a seal (assumed flags cleared)",
+      "expected": "invalid"
+    },
+    {
+      "file": "valid-approved-sealed.json",
+      "description": "The sample approved and sealed (assumed flags cleared)",
+      "expected": "valid"
+    },
+    {
+      "file": "valid-structure-broken-seal.json",
+      "description": "Sealed, then a limit changed from 1.5 to 1.6: structurally valid, seal broken",
+      "expected": "valid, seal broken"
+    }
+  ]
+}
