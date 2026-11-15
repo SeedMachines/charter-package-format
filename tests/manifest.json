@@ -141,6 +141,36 @@
       "file": "valid-structure-broken-seal.json",
       "description": "Sealed, then a limit changed from 1.5 to 1.6: structurally valid, seal broken",
       "expected": "valid, seal broken"
+    },
+    {
+      "file": "valid-maintenance.json",
+      "description": "Optional maintenance section with two items (12.2, proposed)",
+      "expected": "valid"
+    },
+    {
+      "file": "invalid-maintenance-evidence.json",
+      "description": "A maintenance item names an evidence event not in event_records",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-maintenance-duplicate-id.json",
+      "description": "Two maintenance items share an id",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-maintenance-unknown-signal.json",
+      "description": "A maintenance item applies to a signal not in signals.items",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-maintenance-no-interval.json",
+      "description": "A maintenance item has an empty interval",
+      "expected": "invalid"
+    },
+    {
+      "file": "invalid-maintenance-unowned.json",
+      "description": "The maintenance section has no owner in sign_off",
+      "expected": "invalid"
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 **Public review draft of version 1.0, November 2026. Editor: Seed Machines. Comments are welcome; see section 21.**
 
-Companion files: `charter-package-format-1.0.schema.json` (JSON Schema), `validate.py` (reference validator), `tests/` (28 conformance test packages with `manifest.json`).
+Companion files: `charter-package-format-1.0.schema.json` (JSON Schema), `validate.py` (reference validator), `tests/` (34 conformance test packages with `manifest.json`).
 
 ## 1. Scope
 
@@ -48,7 +48,7 @@ A package is a single JSON object (RFC 8259, UTF-8). It MUST contain these secti
 | `sign_off` | Parties, and which party owns each section | 13 |
 | `risk_scenarios` | Which known risks the package addresses and which remain open | 14.1 |
 
-It MAY contain `underwriting_requirements` and `regulatory_conditions` (14.2).
+It MAY contain `underwriting_requirements` and `regulatory_conditions` (14.2), and `maintenance` (12.2, proposed).
 
 Every section except `metadata` and `risk_scenarios` carries its own `version` string, so a change to one section can be seen without comparing whole packages.
 
@@ -192,15 +192,38 @@ Packages from earlier producers MAY instead carry the routing wording `Lowest-ra
 - Entries are hash-chained: `prev_entry_hash` is the previous entry's `entry_hash` (null for the first), and `entry_hash` is the SHA-256 of the entry serialized as compact JSON in the order its fields were written, without its `entry_hash` member.
 - A time gap with an intact chain means the unit did not record. A broken chain means the record was changed after writing.
 - `integrity.independent_copy` SHOULD say where a copy of the chain head is kept outside the unit.
+- `configuration_change_records.required_fields` SHOULD include `software_build`: the identifier of the software build each unit runs after the change, so the record shows which build was running at any time. *(Proposed, see 12.2.)*
 - `forensic_decidability.questions_answerable` MUST list at least the seven post-incident questions in Annex A.
 
-## 12. Operations review
+## 12. Operations review and maintenance
+
+### 12.1 Operations review
 
 `operations_review` says how the package is judged in use and how a version is withdrawn:
 
 - `performance_targets`: at least one, each with a unique `id` and non-empty `metric`, `target`, `window`, `watched_by` and `if_missed`.
 - `review`: `owner`, `cadence_days` (positive), and optionally `valid_from`, `valid_to`, `next_review` (dates; `valid_to` after `valid_from`) and `early_review_triggers`.
 - `rollback`: `conditions` (at least one: when a version is withdrawn), `backout_plan`, `decided_by` (an assigned authority class id from section 10, never `unassigned`), optionally `fallback_version` (an earlier version, or null) and `notify`.
+
+### 12.2 Maintenance and calibration (optional; proposed)
+
+> **Proposed change for 1.0, November 2026.** Comments welcome. Suggested by industry feedback on what underwriters need: maintenance and sensor calibration evidence that is not only self-reported.
+
+`maintenance` states the upkeep the unit needs and how each piece is evidenced in the record. It does not schedule work or say how it is done.
+
+- `version`: as for other sections.
+- `items`: at least one, each with:
+  - `id`: unique, of the form `MT-nn`.
+  - `applies_to`: `component` (non-empty string), and optionally `signals`, the ids of the signals in `signals.items` that the component produces or affects.
+  - `task`: `calibrate`, `inspect`, `test`, `service` or `replace`.
+  - `interval`: `days`, `operating_hours`, or both (positive numbers); the task is due when either is reached.
+  - `method`: the procedure, by title (a manufacturer's manual, a standard). Paid standards are cited by title only (section 19).
+  - `performed_by`: the role that does the task.
+  - `evidence`: the record event type that shows the task was done. It MUST be listed in `record_schema.event_records`.
+
+**Record events.** A package with `maintenance` SHOULD list `maintenance_performed` and `calibration_performed` in `record_schema.event_records`. Each such record entry SHOULD carry `item_id` (the `MT-nn` it fulfils), `component`, `result` (`pass`, `fail` or `adjusted`), `performed_by` and `next_due`.
+
+Like every record entry, these carry the package seal and sit in the hash chain (section 11), so they can be checked afterwards against the package that required them.
 
 ## 13. Sign-off
 
@@ -250,6 +273,7 @@ A package conforms to this specification if it is valid against `charter-package
 - R8. Every enforcement entry names a stated rule word for word, and its `ref` resolves as 8.3 says; `gate` is used only for prohibited actions.
 - R9. Performance target ids are unique; `valid_to` is after `valid_from`; `rollback.decided_by` is an assigned authority class; `fallback_version`, if set, is earlier than `version`.
 - R10. Sign-off parties are unique by role; every section has an owner; every owner is a party; every owned key is a section.
+- R11. If `maintenance` is present: item ids are unique, every `evidence` is listed in `record_schema.event_records`, and every signal in `applies_to.signals` is in `signals.items`. *(Proposed, 12.2.)*
 
 Conformance shows that a package is well formed, sealed and versioned, and that any tool can read and check it. It does not show that the unit's rules are connected to its live signals and records. A package or tool that claims conformance MUST name the version of this specification.
 
